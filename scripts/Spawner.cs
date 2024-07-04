@@ -3,20 +3,28 @@ using UnityEngine.Pool;
 
 public class Spawner : MonoBehaviour
 {
-    [SerializeField] private Cube _cube;
-    [SerializeField] private GameObject _spawnPosition;
+    [SerializeField] private Cube _cubePrefab;
+    [SerializeField] private Spawner _spawnPosition;
+    [SerializeField] Color _cubeOriginaleColor;
     [SerializeField] private float _repeatRate = 0.5f;
-    [SerializeField] private int _poolDefaultCapacity = 12;
+    [SerializeField] private int _poolDefaultCapacity = 5;
     [SerializeField] private int _poolMaxSize = 12;
 
     private ObjectPool<Cube> _pool;
 
+    public void ReleaseCube(Cube cube)
+    {
+        _pool.Release(cube);
+        cube.ResetCube(_cubeOriginaleColor);
+    }
+
     private void Awake()
     {
         _pool = new ObjectPool<Cube>(
-            createFunc: () => Instantiate(_cube),
             actionOnGet: (cube) => ActionOnGet(cube),
-            actionOnRelease: (cube) => cube.SetActive(false),
+            createFunc: () => Instantiate(_cubePrefab),
+            actionOnRelease: (cube) => cube.gameObject.SetActive(false),
+            actionOnDestroy: (cube) => Destroy(cube),
             collectionCheck: true,
             defaultCapacity: _poolDefaultCapacity,
             maxSize: _poolMaxSize);
@@ -35,7 +43,7 @@ public class Spawner : MonoBehaviour
     private void ActionOnGet(Cube cube)
     {
         cube.transform.position = SetRandomPosition();
-        cube.SetActive(true);
+        cube.gameObject.SetActive(true);
     }
 
     private Vector3 SetRandomPosition()
@@ -48,10 +56,5 @@ public class Spawner : MonoBehaviour
         position.z = _spawnPosition.transform.position.z - Random.Range(minRandom, maxRandom);
 
         return position;
-    }
-
-    private void OnTriggerEnter(Collider other)
-    {
-        _pool.Release(_cube);
     }
 }

@@ -1,25 +1,35 @@
+using System;
 using System.Collections;
 using UnityEngine;
+using Random = UnityEngine.Random;
 
 [RequireComponent(typeof(Renderer))]
 public class Cube : MonoBehaviour
 {
-    [SerializeField] private Cube _cube;
+    [SerializeField] private Spawner _spawner;
 
     private int _lifeTime;
     private int _timesColorChanged = 0;
-    private Coroutine _coroutine;
+    private Renderer _renderer;
 
-    public void SetActive(bool state)
+    public void ResetCube(Color color)
     {
-        gameObject.SetActive(state);
+        SetTime();
+        _renderer.material.color = color;
+        _timesColorChanged = 0;
     }
 
     private void Start()
     {
+        _renderer = GetComponent<Renderer>();
+        SetTime();
+    }
+
+    private void SetTime()
+    {
         int minLifeTime = 2;
         int maxLifeTime = 5;
-        _lifeTime = UnityEngine.Random.Range(minLifeTime, maxLifeTime + 1);
+        _lifeTime = Random.Range(minLifeTime, maxLifeTime + 1);
     }
 
     private void OnCollisionEnter(Collision collision)
@@ -27,8 +37,8 @@ public class Cube : MonoBehaviour
         if (collision.gameObject.TryGetComponent(out MeshCollider platform) && _timesColorChanged == 0)
         {
             _timesColorChanged++;
-            _cube.GetComponent<Renderer>().material.color = UnityEngine.Random.ColorHSV();
-            _coroutine = StartCoroutine(Timer());
+            _renderer.material.color = Random.ColorHSV();
+            StartCoroutine(Timer());
         }
     }
 
@@ -36,11 +46,12 @@ public class Cube : MonoBehaviour
     {
         var wait = new WaitForSeconds(1);
 
-        for (int i = _lifeTime; i > 0; i--)
+        while (_lifeTime != 0)
         {
+            _lifeTime--;
             yield return wait;
         }
 
-        Destroy(gameObject);
+        _spawner.ReleaseCube(this);
     }
 }
