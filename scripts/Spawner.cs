@@ -1,3 +1,4 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.Pool;
 
@@ -5,23 +6,17 @@ public class Spawner : MonoBehaviour
 {
     [SerializeField] private Cube _cubePrefab;
     [SerializeField] private Spawner _spawnPosition;
-    [SerializeField] Color _cubeOriginaleColor;
+    [SerializeField] private Color _cubeOriginaleColor;
     [SerializeField] private float _repeatRate = 0.5f;
     [SerializeField] private int _poolDefaultCapacity = 5;
     [SerializeField] private int _poolMaxSize = 12;
 
     private ObjectPool<Cube> _pool;
 
-    public void ReleaseCube(Cube cube)
-    {
-        _pool.Release(cube);
-        cube.ResetCube(_cubeOriginaleColor);
-    }
-
     private void Awake()
     {
         _pool = new ObjectPool<Cube>(
-            actionOnGet: (cube) => ActionOnGet(cube),
+            actionOnGet: (cube) => SetCube(cube),
             createFunc: () => Instantiate(_cubePrefab),
             actionOnRelease: (cube) => cube.gameObject.SetActive(false),
             actionOnDestroy: (cube) => Destroy(cube),
@@ -32,7 +27,13 @@ public class Spawner : MonoBehaviour
 
     private void Start()
     {
-        InvokeRepeating(nameof(GetCube), 0.0f, _repeatRate);
+        StartCoroutine(SpawnCube(_repeatRate));
+    }
+
+    public void ReleaseCube(Cube cube)
+    {
+        _pool.Release(cube);
+        cube.ResetCube(_cubeOriginaleColor);
     }
 
     private void GetCube()
@@ -40,7 +41,7 @@ public class Spawner : MonoBehaviour
         _pool.Get();
     }
 
-    private void ActionOnGet(Cube cube)
+    private void SetCube(Cube cube)
     {
         cube.transform.position = SetRandomPosition();
         cube.gameObject.SetActive(true);
@@ -56,5 +57,16 @@ public class Spawner : MonoBehaviour
         position.z = _spawnPosition.transform.position.z - Random.Range(minRandom, maxRandom);
 
         return position;
+    }
+
+    private IEnumerator SpawnCube(float seconds)
+    {
+        var wait = new WaitForSeconds(seconds);
+
+        while (enabled)
+        {
+            GetCube();
+            yield return wait;
+        }
     }
 }
